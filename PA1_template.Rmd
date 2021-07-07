@@ -1,0 +1,96 @@
+---
+title: "Reproducible Research Week 2 Project 1"
+author: "Renga Pandurengan"
+date: "6/30/2021"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Loading required packages
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(Hmisc)
+```
+
+1. Loading & Manipulating data
+
+```{r}
+data <- read.csv("C:/Users/rkrishnaramanujam/Desktop/Data_Science/ReproducibleResearch/Week_2/Project_1/repdata_data_activity/activity.csv")
+data$date_new <- as.Date(data$date) 
+
+```
+
+2. Creating Histogram of the total number of steps taken each day
+
+```{r}
+stepsPerDay <- tapply(data$steps, data$date, sum, na.rm=TRUE)
+qplot(stepsPerDay, xlab='Total steps per day', ylab='Frequency ')
+```
+
+3. Mean and median number of steps taken each day
+ 
+```{r}
+ MeanstepsByDay <- mean(stepsPerDay)
+MedianstepsByDay <- median(stepsPerDay)
+```
+
+4. Time series plot of the average number of steps taken
+
+```{r}
+averageStepsPerTimeBlock <- aggregate(x=list(meanSteps=data$steps), by=list(interval=data$interval), FUN=mean, na.rm=TRUE)
+
+
+ggplot(data=averageStepsPerTimeBlock, aes(x=interval, y=meanSteps)) +
+  geom_line() +
+  xlab("Interval (5 minute)") +
+  ylab("average number of steps taken") 
+```
+
+5. The 5-minute interval that, on average, contains the maximum number of steps
+```{r}
+maxSteps <- which.max(averageStepsPerTimeBlock$meanSteps)
+timeMaxSteps <-  gsub("([0-9]{1,2})([0-9]{2})", "\\1:\\2", averageStepsPerTimeBlock[maxSteps,'interval'])
+```
+
+6. Code to describe and show a strategy for imputing missing data
+
+
+```{r}
+#Number of missing values
+NoMissingValues <- sum(is.na(data$steps))
+NoMissingValues
+#Strategy for imputing missing values
+dataImputed <- data
+dataImputed$steps <- impute(data$steps, fun=mean)
+```
+
+7. Histogram of the total number of steps taken each day after missing values are imputed
+
+```{r}
+# Create the histogram with imputed data.
+qplot(dataImputed$steps, xlab='Total steps per day', ylab='Frequency ')
+```
+
+8. Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+
+```{r}
+dataImputed$dateType <-  ifelse(as.POSIXlt(dataImputed$date)$wday %in% c(0,6), 'weekend', 'weekday')
+MeandataImputed <- aggregate(steps ~ interval + dateType, data=dataImputed, mean)
+
+# Panel plot 
+
+ggplot(MeandataImputed, aes(interval, steps)) + 
+  geom_line() + 
+  facet_grid(dateType ~ .) +
+  xlab("Interval") + 
+  ylab("average number of steps")
+```
+
+9. All of the R code needed to reproduce the results (numbers, plots, etc.) in the report
+
